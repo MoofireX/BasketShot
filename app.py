@@ -39,6 +39,8 @@ def index():
         shots_x, shots_y, sub_images, distance = b.calculate_shots()
 
         tiles = []
+        hoop_height_m = 3.048 # Standard 10ft hoop height in meters
+
         for (r, c), img in sub_images.items():
             img_filename = f'tile_{r}_{c}.png'
             img_path = os.path.join(app.config['TILES_FOLDER'], img_filename)
@@ -46,9 +48,13 @@ def index():
 
             # Calculate physics for this specific position
             distance_x = b.hoop_pos[0] - r
-            distance_y = b.hoop_pos[1] - c
-            a, b_coef, c_coef = b.parabola_vars(45, r, b.hoop_pos[0], b.height, b.hoop_pos[1])
-            shot, acceleration, force, release_time = b.parabolic_shot(a, b_coef, c_coef, distance_x)
+            
+            # We'll calculate for two different parabolas (different launch angles)
+            a1, b1, c1 = b.parabola_vars(45, r, b.hoop_pos[0], b.height, hoop_height_m)
+            a2, b2, c2 = b.parabola_vars(55, r, b.hoop_pos[0], b.height, hoop_height_m)
+
+            # The original parabolic_shot seems to be for a single point, let's get the other metrics from it
+            shot, acceleration, force, release_time = b.parabolic_shot(a1, b1, c1, distance_x)
 
             tiles.append({
                 'r': r,
@@ -56,7 +62,13 @@ def index():
                 'filename': img_filename,
                 'acceleration': f'{acceleration:.2f}',
                 'force': f'{force:.2f}',
-                'release_time': f'{release_time:.2f}'
+                'release_time': f'{release_time:.2f}',
+                'parabolas': [
+                    {'a': a1, 'b': b1, 'c': c1, 'angle': 45},
+                    {'a': a2, 'b': b2, 'c': c2, 'angle': 55}
+                ],
+                'x_start': r,
+                'x_end': b.hoop_pos[0]
             })
 
         return render_template('index.html', tiles=tiles)
