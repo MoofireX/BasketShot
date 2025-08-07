@@ -553,14 +553,11 @@
     </div>
 
     <div id="grid" class="grid">
-        <!-- Grid tiles would be populated by the backend -->
-        <div class="tile" onclick="showPopup(1, 1, '5.2', '245', '0.8')">
-            <div style="width: 100%; height: 100%; background: linear-gradient(45deg, #ff6b35, #f7931e); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white;">1,1</div>
+        {% for tile in tiles %}
+        <div class="tile" onclick='showPopup({{ tile.r }}, {{ tile.c }}, "{{ tile.acceleration }}", "{{ tile.force }}", "{{ tile.release_time }}", {{ tile.parabolas | tojson }}, {{ tile.x_start }}, {{ tile.x_end }})'>
+            <img src="{{ url_for('static', filename='tiles/' + tile.filename) }}" alt="Court tile {{ tile.r }}, {{ tile.c }}">
         </div>
-        <div class="tile" onclick="showPopup(1, 2, '5.1', '240', '0.82')">
-            <div style="width: 100%; height: 100%; background: linear-gradient(45deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white;">1,2</div>
-        </div>
-        <!-- More tiles would be generated here -->
+        {% endfor %}
     </div>
 
     <!-- Comic-style popup -->
@@ -584,6 +581,7 @@
             <span class="stat-label">Release Time</span>
             <span class="stat-value" id="release-time-value">- s</span>
         </div>
+        <button class="info-btn" style="position: static; margin-top: 1rem;" onclick="showPlotModal()">Plot Trajectory</button>
     </div>
 
     <!-- Physics Info Modal -->
@@ -650,10 +648,25 @@ c = y₁ - ax₁² - bx₁</code></pre>
         </div>
     </div>
 
+    <div class="info-modal" id="plotModal">
+        <div class="info-content" style="width: 80vw; max-width: 1000px;">
+            <button class="close-info" onclick="closePlotModal()">×</button>
+            <h1>Shot Trajectory</h1>
+            <canvas id="parabolaChart" width="800" height="400"></canvas>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        let currentParabolas = [];
+        let currentXStart = 0;
+        let currentXEnd = 0;
+        let parabolaChart = null;
+
         // Create floating particles
         function createParticles() {
             const container = document.getElementById('particles');
+            if (!container) return;
             for (let i = 0; i < 50; i++) {
                 const particle = document.createElement('div');
                 particle.className = 'particle';
@@ -668,12 +681,16 @@ c = y₁ - ax₁² - bx₁</code></pre>
         }
 
         // Show comic popup
-        function showPopup(r, c, acceleration, force, releaseTime) {
+        function showPopup(r, c, acceleration, force, releaseTime, parabolas, xStart, xEnd) {
             document.getElementById('position-value').textContent = `(${r}, ${c})`;
             document.getElementById('acceleration-value').textContent = acceleration + ' m/s²';
             document.getElementById('force-value').textContent = force + ' N';
             document.getElementById('release-time-value').textContent = releaseTime + ' s';
             
+            currentParabolas = parabolas;
+            currentXStart = xStart;
+            currentXEnd = xEnd;
+
             document.getElementById('overlay').classList.add('show');
             document.getElementById('popup').classList.add('show');
         }
@@ -694,11 +711,12 @@ c = y₁ - ax₁² - bx₁</code></pre>
             createParticles();
         });
 
-        // Close popup with Escape key
+        // Close popups with Escape key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closePopup();
                 closeInfoModal();
+                closePlotModal();
             }
         });
 
@@ -711,15 +729,78 @@ c = y₁ - ax₁² - bx₁</code></pre>
             document.getElementById('infoModal').classList.remove('show');
         }
 
-        // Add hover sound effect (optional)
-        document.querySelectorAll('.tile').forEach(tile => {
-            tile.addEventListener('mouseenter', function() {
-                this.style.filter = 'brightness(1.2)';
+        // Plot modal functions
+        function showPlotModal() {
+            closePopup();
+            document.getElementById('plotModal').classList.add('show');
+            
+            const datasets = currentParabolas.map(parabola => {
+                const { a, b, c, angle } = parabola;
+                const data = [];
+                const numPoints = 100;
+                const xRange = currentXEnd - currentXStart;
+                const step = xRange / numPoints;
+
+                for (let i = 0; i <= numPoints; i++) {
+                    const x = currentXStart + i * step;
+                    const y = a * (x**2) + b * x + c;
+                    data.push({ x: x, y: y });
+                }
+                return {
+                    label: `Launch Angle ${angle}°`,
+                    data: data,
+                    borderColor: angle === 45 ? '#ff6b35' : '#667eea',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 0,
+                };
             });
-            tile.addEventListener('mouseleave', function() {
-                this.style.filter = 'brightness(1)';
+
+            const ctx = document.getElementById('parabolaChart').getContext('2d');
+            if (parabolaChart) {
+                parabolaChart.destroy();
+            }
+            parabolaChart = new Chart(ctx, {
+                type: 'line',
+                data: { datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Distance from baseline (m)',
+                                font: { size: 16, family: 'Orbitron' },
+                                color: '#333'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Height (m)',
+                                font: { size: 16, family: 'Orbitron' },
+                                color: '#333'
+                            },
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                font: { size: 14, family: 'Orbitron' }
+                            }
+                        }
+                    }
+                }
             });
-        });
+        }
+
+        function closePlotModal() {
+            document.getElementById('plotModal').classList.remove('show');
+        }
     </script>
 </body>
 </html>
