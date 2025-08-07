@@ -1,0 +1,65 @@
+from flask import Flask, render_template, request, redirect, url_for
+import os
+import cv2
+import numpy as np
+from basketshot import basketshot
+from werkzeug.utils import secure_filename
+import math
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['TILES_FOLDER'] = 'static/tiles'
+
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['TILES_FOLDER'], exist_ok=True)
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    if request.method == 'POST':
+        height = float(request.form['height'])
+        weight = float(request.form['weight'])
+        athleticism = int(request.form['athleticism'])
+        image = request.files['court_image']
+
+        if not image:
+            return 'Image upload required', 400
+
+        filename = secure_filename(image.filename)
+        image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        image.save(image_path)
+
+        # Clear old tiles
+        for f in os.listdir(app.config['TILES_FOLDER']):
+            os.remove(os.path.join(app.config['TILES_FOLDER'], f))
+
+        # Generate shots
+        b = basketshot(img=image_path, height=height, weight=weight, athleticism=athleticism)
+        shots_x, shots_y, sub_images, distance = b.calculate_shots()
+
+        tiles = []
+        for (r, c), img in sub_images.items():
+            img_filename = f'tile_{r}_{c}.png'
+            img_path = os.path.join(app.config['TILES_FOLDER'], img_filename)
+            cv2.imwrite(img_path, img)
+
+            # Calculate physics for this specific position
+            distance_x = b.hoop_pos[0] - r
+            distance_y = b.hoop_pos[1] - c
+            a, b_coef, c_coef = b.parabola_vars(45, r, b.hoop_pos[0], b.height, b.hoop_pos[1])
+            shot, acceleration, force, release_time = b.parabolic_shot(a, b_coef, c_coef, distance_x)
+
+            tiles.append({
+                'r': r,
+                'c': c,
+                'filename': img_filename,
+                'acceleration': f'{acceleration:.2f}',
+                'force': f'{force:.2f}',
+                'release_time': f'{release_time:.2f}'
+            })
+
+        return render_template('index.html', tiles=tiles)
+
+    return render_template('index.html', tiles=[])
+
+if __name__ == '__main__':
+    app.run(debug=True)
