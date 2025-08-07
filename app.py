@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for
+from flask_cors import CORS
 import os
 import cv2
 import numpy as np
@@ -9,6 +10,7 @@ import math
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['TILES_FOLDER'] = 'static/tiles'
+CORS(app)
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['TILES_FOLDER'], exist_ok=True)
