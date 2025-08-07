@@ -36,9 +36,12 @@ class basketshot():
         drag = (1/2)*air_density*math.pow(velocity,2)*self.Cd*crosssection_area
         return drag
     def parabola_vars(self,theta,x1,x2,y1,y2):
+        if (x2 - x1) == 0:
+            return 0, 0, y1 
         a = math.tan(math.radians(theta)) / (x1-x2)
         b = ((y2 - y1) - a * (math.pow(x2,2) - math.pow(x1,2))) / (x2 - x1)
         c = y1 - (a*(math.pow(x1,2))) - b*x1
+        
         return a, b, c
     def parabolic_shot(self,a,b,c,x):
         shot = a*(math.pow(x,2))+(b*x)+c
