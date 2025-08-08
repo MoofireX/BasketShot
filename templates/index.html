@@ -611,11 +611,13 @@
 
     <div id="grid" class="grid">
         {% for tile in tiles %}
-        <div class="tile" onclick='showPopup({{ tile.r }}, {{ tile.c }}, "{{ tile.acceleration }}", "{{ tile.force }}", "{{ tile.release_time }}", {{ tile.parabolas | tojson }}, {{ tile.x_start }}, {{ tile.x_end }})'>
+        <div class="tile" onclick='showPopup({{ tile.r }}, {{ tile.c }}, {{ tile.parabolas | tojson }}, {{ tile.x_start }}, {{ tile.x_end }})'>
             <img src="{{ url_for('static', filename='tiles/' + tile.filename) }}" alt="Court tile {{ tile.r }}, {{ tile.c }}">
         </div>
         {% endfor %}
     </div>
+
+    <div id="scene-container" style="width: 100%; height: 500px; background-color: #f0f0f0;"></div>
 
     <!-- Comic-style popup -->
     <div class="overlay" id="overlay" onclick="closePopup()"></div>
@@ -645,63 +647,72 @@
     <div class="info-modal" id="infoModal">
         <div class="info-content">
             <button class="close-info" onclick="closeInfoModal()">×</button>
-            <h1>🔬 General Parabola Solver: Physics Behind Your Shot</h1>
+            <h1>🔬 The Physics Behind Your Shot</h1>
+            <p>The simulation uses real-world physics principles to determine the force, acceleration, and time required for a successful shot. Here's how it works:</p>
+
+            <!-- Section 1: Parabolic Trajectory -->
+            <h2>Part 1: Plotting the Shot Arc (Parabola)</h2>
+            <p>First, we calculate the mathematical parabola (the arc of the ball) needed to get from your hands to the hoop at a specific launch angle.</p>
             
-            <h2>📐 Given Parameters</h2>
+            <h4>Given Parameters:</h4>
             <ul>
-                <li><strong>Starting point:</strong> (x₁, y₁) - Your position on court</li>
-                <li><strong>Target point:</strong> (x₂, y₂) - Basketball hoop location</li>
-                <li><strong>Launch angle:</strong> θ degrees above horizontal at starting point</li>
-                <li><strong>Constraint:</strong> Parabola is symmetric (vertex at x-midpoint)</li>
+                <li><strong>Starting Point (x₁, y₁):</strong> Your position on the court, with y₁ being your height.</li>
+                <li><strong>Target Point (x₂, y₂):</strong> The hoop's position and height.</li>
+                <li><strong>Launch Angle (θ):</strong> The angle you shoot the ball (e.g., 45° or 55°).</li>
             </ul>
 
-            <h2>🧮 General Equations</h2>
+            <h4>The Equation:</h4>
+            <p>We solve for the coefficients <code>a</code>, <code>b</code>, and <code>c</code> in the standard parabola equation: <code>y = ax² + bx + c</code>.</p>
             
             <div class="formula-box">
-                <strong>Step 1: Calculate the coefficients</strong><br><br>
-                a = tan(θ) / (x₁ - x₂)<br>
-                b = -a(x₁ + x₂)<br>
-                c = y₁ - ax₁² - bx₁
+                <strong>Step 1: Find coefficient `a`</strong><br>
+                <code>a = tan(θ) / (x₁ - x₂)</code>
             </div>
-
             <div class="formula-box">
-                <strong>Step 2: Your parabola equation</strong><br><br>
-                y = ax² + bx + c
+                <strong>Step 2: Find coefficient `b`</strong><br>
+                <code>b = ( (y₂ - y₁) - a * (x₂² - x₁²) ) / (x₂ - x₁)</code>
             </div>
-
-            <h2>📊 Usage Example</h2>
-            <p>For your specific case:</p>
-            <ul>
-                <li>Starting point: (25, 5.25)</li>
-                <li>Target point: (10, 5)</li>
-                <li>Angle: 50°</li>
-            </ul>
-
-            <p><strong>Calculations:</strong></p>
-            <ul>
-                <li>a = tan(50°) / (25 - 10) = 1.192 / 15 = <code>0.0795</code></li>
-                <li>b = -0.0795(25 + 10) = -0.0795(35) = <code>-2.783</code></li>
-                <li>c = 5.25 - 0.0795(25²) - (-2.783)(25) = 5.25 - 49.69 + 69.58 = <code>25.14</code></li>
-            </ul>
-
             <div class="formula-box">
-                <strong>Result:</strong> y = 0.0795x² - 2.783x + 25.14
+                <strong>Step 3: Find coefficient `c`</strong><br>
+                <code>c = y₁ - a*x₁² - b*x₁</code>
             </div>
 
-            <h2>🔧 Quick Reference Formula</h2>
-            <p>For any launch angle θ and points (x₁, y₁) → (x₂, y₂):</p>
+            <!-- Section 2: Shot Dynamics -->
+            <h2>Part 2: Calculating the Shot Dynamics</h2>
+            <p>Next, we use core physics principles to figure out the real-world forces needed to make that shot happen.</p>
 
-            <pre><code>a = tan(θ°) / (x₁ - x₂)
-b = -a(x₁ + x₂)  
-c = y₁ - ax₁² - bx₁</code></pre>
+            <h4>Step 2.1: Find the Initial Velocity (v₀)</h4>
+            <p>We use the official projectile motion equation to find the initial speed (<code>v₀</code>) the ball needs to leave your hands with.</p>
+            <pre><code># Projectile Motion Formula
+y(x) = x*tan(θ) - (g*x²) / (2*v₀²*cos²(θ))</code></pre>
+            <p>By rearranging this formula to solve for <code>v₀²</code>, we get:</p>
+            <div class="formula-box">
+                <strong>Initial Velocity Squared (v₀²)</strong><br>
+                <code>v₀² = (g * x²) / (2 * cos²(θ) * (x*tan(θ) - y))</code>
+                <br><small>where <strong>x</strong> is the horizontal distance to the hoop, <strong>y</strong> is the vertical distance, and <strong>g</strong> is gravity (9.8 m/s²).</small>
+            </div>
 
-            <h2>✅ Verification Checks</h2>
-            <ul>
-                <li>✓ Point 1: y₁ = ax₁² + bx₁ + c</li>
-                <li>✓ Point 2: y₂ = ax₂² + bx₂ + c</li>
-                <li>✓ Angle: 2ax₁ + b = tan(θ)</li>
-                <li>✓ Vertex: x = -b/(2a) = (x₁ + x₂)/2</li>
-            </ul>
+            <h4>Step 2.2: Find the Force Required</h4>
+            <p>Using the <strong>Work-Energy Theorem</strong> (Work = Change in Kinetic Energy), we calculate the average force you need to apply.</p>
+            <div class="formula-box">
+                <strong>Force (F)</strong><br>
+                <code>Force = (0.5 * mass * v₀²) / push_distance</code>
+                <br><small>where <strong>mass</strong> is the ball's mass (0.624 kg) and <strong>push_distance</strong> is the distance you push the ball (assumed to be 1/3 of your height).</small>
+            </div>
+
+            <h4>Step 2.3: Find Acceleration & Release Time</h4>
+            <p>Finally, we use Newton's Second Law (F=ma) and basic kinematics to find the ball's acceleration and the time it takes to release the shot.</p>
+            <div class="formula-box">
+                <strong>Acceleration (a)</strong><br>
+                <code>a = (Force / mass) * athleticism_factor</code>
+                <br><small>The <strong>athleticism_factor</strong> (Beginner: 0.8, Intermediate: 1.0, Pro: 1.2) adjusts the raw acceleration.</small>
+            </div>
+             <div class="formula-box">
+                <strong>Release Time (t)</strong><br>
+                <code>t = sqrt(2 * push_distance / a)</code>
+                <br><small>This is how long it takes to accelerate the ball from rest over the <strong>push_distance</strong>.</small>
+            </div>
+
         </div>
     </div>
 
@@ -714,6 +725,7 @@ c = y₁ - ax₁² - bx₁</code></pre>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         let currentParabolas = [];
         let currentXStart = 0;
@@ -738,11 +750,14 @@ c = y₁ - ax₁² - bx₁</code></pre>
         }
 
         // Show comic popup
-        function showPopup(r, c, acceleration, force, releaseTime, parabolas, xStart, xEnd) {
+        function showPopup(r, c, parabolas, xStart, xEnd) {
             document.getElementById('position-value').textContent = `(${r}, ${c})`;
-            document.getElementById('acceleration-value').textContent = acceleration + ' m/s²';
-            document.getElementById('force-value').textContent = force + ' N';
-            document.getElementById('release-time-value').textContent = releaseTime + ' s';
+            
+            // For simplicity, we'll show the stats for the first parabola in the main popup
+            const firstParabola = parabolas[0];
+            document.getElementById('acceleration-value').textContent = firstParabola.acceleration + ' m/s²';
+            document.getElementById('force-value').textContent = firstParabola.force + ' N';
+            document.getElementById('release-time-value').textContent = firstParabola.release_time + ' s';
             
             currentParabolas = parabolas;
             currentXStart = xStart;
@@ -858,6 +873,56 @@ c = y₁ - ax₁² - bx₁</code></pre>
         function closePlotModal() {
             document.getElementById('plotModal').classList.remove('show');
         }
+
+        // Three.js scene setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / 500, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, 500);
+        document.getElementById('scene-container').appendChild(renderer.domElement);
+
+        // Add the court
+        const courtTexture = new THREE.TextureLoader().load("{{ url_for('static', filename='nbacourt.jpg') }}");
+        const courtMaterial = new THREE.MeshBasicMaterial({ map: courtTexture });
+        const courtGeometry = new THREE.PlaneGeometry(15, 30);
+        const court = new THREE.Mesh(courtGeometry, courtMaterial);
+        court.rotation.x = -Math.PI / 2;
+        scene.add(court);
+
+        // Add the hoop
+        const hoopGeometry = new THREE.TorusGeometry(0.5, 0.1, 16, 100);
+        const hoopMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const hoop = new THREE.Mesh(hoopGeometry, hoopMaterial);
+        hoop.position.y = 3.05;
+        hoop.position.z = -13;
+        hoop.rotation.x = Math.PI / 2;
+        scene.add(hoop);
+
+        // Add the ball
+        const ballGeometry = new THREE.SphereGeometry(0.1, 32, 32);
+        const ballMaterial = new THREE.MeshBasicMaterial({ color: 0xff8c00 });
+        const ball = new THREE.Mesh(ballGeometry, ballMaterial);
+        ball.position.y = 1;
+        scene.add(ball);
+
+        scene.add(ball);
+
+        // Add lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        directionalLight.position.set(0, 1, 1);
+        scene.add(directionalLight);
+
+        camera.position.set(0, 5, 10);
+        camera.lookAt(0, 0, 0);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
     </script>
 </body>
 </html>
