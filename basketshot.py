@@ -37,6 +37,9 @@ class basketshot():
         return drag
     def parabola_vars(self,theta,x1,x2,y1,y2):
         if (x2 - x1) == 0:
+            return 0, 0, y1
+        
+        if (x1 - x2) == 0:
             return 0, 0, y1 
         a = math.tan(math.radians(theta)) / (x1-x2)
         b = ((y2 - y1) - a * (math.pow(x2,2) - math.pow(x1,2))) / (x2 - x1)
@@ -52,13 +55,15 @@ class basketshot():
         else:
             percent = 0.7
         push = percent * self.weight * self.gravity
-        velocity = math.sqrt((2*push*(self.height/2))/self.mass)
+        distance_to_hoop = abs(self.hoop_pos[0] - x)
+        velocity = math.sqrt(distance_to_hoop * self.gravity)
+
         drag_force = self.air_resistance_formula(self.air_density, velocity, self.cross_Section_Area)
         net_force = push - drag_force
         if net_force < 0:
             net_force = 0.001
         acceleration = net_force / self.mass
-        if acceleration == 0.1:
+        if acceleration <= 0:
             acceleration = 0.1  
         force = self.mass * acceleration
         release_time = math.sqrt(self.height/acceleration) + math.sqrt((2*((5/6)*self.height))/acceleration)
