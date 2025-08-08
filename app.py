@@ -25,13 +25,15 @@ def ensure_court_image():
             urllib.request.urlretrieve(github_url, court_image_path)
         except Exception as e:
             print(f"Error downloading court image: {e}")
-            # Create a placeholder if download fails
-            placeholder_img = np.ones((600, 800, 3), dtype=np.uint8) * 128
-            cv2.imwrite(court_image_path, placeholder_img)
     return court_image_path
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    court_image_path = ensure_court_image()
+    court_image_url = None
+    if os.path.exists(court_image_path):
+        court_image_url = os.path.join(os.path.basename(app.config['UPLOAD_FOLDER']), os.path.basename(court_image_path)).replace('\\', '/')
+
     if request.method == 'POST':
         try:
             height = float(request.form['height'])
@@ -39,7 +41,7 @@ def index():
             athleticism = int(request.form['athleticism'])
 
             # Use the embedded court image
-            image_path = ensure_court_image()
+            image_path = court_image_path
 
             # Clear old tiles
             for f in os.listdir(app.config['TILES_FOLDER']):
@@ -83,13 +85,13 @@ def index():
                     'x_end': b.hoop_pos[0]
                 })
 
-            return render_template('index.html', tiles=tiles)
+            return render_template('index.html', tiles=tiles, court_image_url=court_image_url)
             
         except Exception as e:
             print(f"Error processing request: {e}")
-            return render_template('index.html', tiles=[], error=str(e))
+            return render_template('index.html', tiles=[], error=str(e), court_image_url=court_image_url)
 
-    return render_template('index.html', tiles=[])
+    return render_template('index.html', tiles=[], court_image_url=court_image_url)
 
 if __name__ == '__main__':
     app.run(debug=True)
