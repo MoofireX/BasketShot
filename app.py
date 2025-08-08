@@ -21,7 +21,7 @@ def ensure_court_image():
     if not os.path.exists(court_image_path):
         try:
             # Replace with your GitHub raw URL
-            github_url = "https://raw.githubusercontent.com/yourusername/yourrepo/main/court.jpg"
+            github_url = "https://raw.githubusercontent.com/MoofireX/basketshot-frontend/main/nbacourt.jpg"
             urllib.request.urlretrieve(github_url, court_image_path)
         except Exception as e:
             print(f"Error downloading court image: {e}")
