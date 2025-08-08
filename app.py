@@ -70,48 +70,48 @@ def index():
                 a2, b2, c2 = b.parabola_vars(launch_angle_2, r, b.hoop_pos[0], b.height, hoop_height_m)
 
                 # --- Corrected physics calculations ---
-                y = hoop_height_m - b.height
-                g = b.gravity
-                
-                theta_rad_1 = math.radians(launch_angle_1)
-                cos_theta_sq_1 = math.cos(theta_rad_1)**2
-                tan_theta_1 = math.tan(theta_rad_1)
-                denominator_1 = 2 * cos_theta_sq_1 * (distance_x * tan_theta_1 - y)
-                
-                acceleration, force, release_time = 0, 0, 0
+                def calculate_shot_dynamics(launch_angle):
+                    y = hoop_height_m - b.height
+                    g = b.gravity
+                    
+                    theta_rad = math.radians(launch_angle)
+                    cos_theta_sq = math.cos(theta_rad)**2
+                    tan_theta = math.tan(theta_rad)
+                    
+                    denominator = 2 * cos_theta_sq * (distance_x * tan_theta - y)
+                    
+                    acceleration, force, release_time = 0, 0, 0
 
-                if denominator_1 > 0:
-                    v0_squared = (g * distance_x**2) / denominator_1
-                    if v0_squared > 0:
-                        v0 = math.sqrt(v0_squared)
-                        push_distance = b.height / 3 
-                        
-                        if b.athleticism == 1: athleticism_factor = 1.2
-                        elif b.athleticism == 2: athleticism_factor = 1.0
-                        else: athleticism_factor = 0.8
+                    if denominator > 0:
+                        v0_squared = (g * distance_x**2) / denominator
+                        if v0_squared > 0:
+                            push_distance = b.height / 3 
+                            
+                            if b.athleticism == 1: athleticism_factor = 0.8
+                            elif b.athleticism == 2: athleticism_factor = 1.0
+                            else: athleticism_factor = 1.2
 
-                        # Force is determined by the work-energy theorem. W = ΔKE
-                        # Force * distance = 0.5 * mass * velocity^2
-                        force = (0.5 * b.mass * v0_squared) / push_distance
+                            force = (0.5 * b.mass * v0_squared) / push_distance
+                            acceleration = (force / b.mass) * athleticism_factor
+                            if acceleration <= 0: acceleration = 0.1
 
-                        # Acceleration (a = F/m) is influenced by the player's athleticism.
-                        acceleration = (force / b.mass) * athleticism_factor
-                        if acceleration <= 0: acceleration = 0.1
+                            release_time = math.sqrt(2 * push_distance / acceleration)
+                    
+                    return acceleration, force, release_time
 
-                        # Release time (d = 0.5 * a * t^2  => t = sqrt(2d/a))
-                        # is shorter for more athletic players who can generate acceleration more quickly.
-                        release_time = math.sqrt(2 * push_distance / acceleration)
+                acceleration1, force1, release_time1 = calculate_shot_dynamics(launch_angle_1)
+                acceleration2, force2, release_time2 = calculate_shot_dynamics(launch_angle_2)
 
                 tiles.append({
                     'r': r,
                     'c': c,
                     'filename': img_filename,
-                    'acceleration': f'{acceleration:.2f}',
-                    'force': f'{force:.2f}',
-                    'release_time': f'{release_time:.2f}',
+                    'acceleration': f'{acceleration1:.2f}',
+                    'force': f'{force1:.2f}',
+                    'release_time': f'{release_time1:.2f}',
                     'parabolas': [
-                        {'a': a1, 'b': b1, 'c': c1, 'angle': launch_angle_1},
-                        {'a': a2, 'b': b2, 'c': c2, 'angle': launch_angle_2}
+                        {'a': a1, 'b': b1, 'c': c1, 'angle': launch_angle_1, 'acceleration': f'{acceleration1:.2f}', 'force': f'{force1:.2f}', 'release_time': f'{release_time1:.2f}'},
+                        {'a': a2, 'b': b2, 'c': c2, 'angle': launch_angle_2, 'acceleration': f'{acceleration2:.2f}', 'force': f'{force2:.2f}', 'release_time': f'{release_time2:.2f}'}
                     ],
                     'x_start': r,
                     'x_end': b.hoop_pos[0]
