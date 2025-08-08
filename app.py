@@ -90,14 +90,16 @@ def index():
                         elif b.athleticism == 2: athleticism_factor = 1.0
                         else: athleticism_factor = 0.8
 
-                        force = ((0.5 * b.mass * v0_squared) / push_distance) * athleticism_factor
-                        drag_force = b.air_resistance_formula(b.air_density, v0, b.cross_Section_Area)
-                        net_force = force - drag_force
-                        if net_force <= 0: net_force = 0.001
+                        # Force is determined by the work-energy theorem. W = ΔKE
+                        # Force * distance = 0.5 * mass * velocity^2
+                        force = (0.5 * b.mass * v0_squared) / push_distance
 
-                        acceleration = net_force / b.mass
+                        # Acceleration (a = F/m) is influenced by the player's athleticism.
+                        acceleration = (force / b.mass) * athleticism_factor
                         if acceleration <= 0: acceleration = 0.1
 
+                        # Release time (d = 0.5 * a * t^2  => t = sqrt(2d/a))
+                        # is shorter for more athletic players who can generate acceleration more quickly.
                         release_time = math.sqrt(2 * push_distance / acceleration)
 
                 tiles.append({
