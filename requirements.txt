@@ -3,4 +3,3 @@ flask-cors
 gunicorn
 opencv-python
 numpy
-urllib
