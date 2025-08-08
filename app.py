@@ -63,55 +63,62 @@ def index():
                 distance_x = b.hoop_pos[0] - r
                 if distance_x <= 0: continue
 
+                # --- Unified Physics Calculations ---
+                def calculate_shot_physics(launch_angle, start_r):
+                    # 1. Define constants and initial conditions
+                    y_diff = hoop_height_m - b.height
+                    g = b.gravity
+                    theta_rad = math.radians(launch_angle)
+                    cos_theta = math.cos(theta_rad)
+                    tan_theta = math.tan(theta_rad)
+
+                    if cos_theta == 0: return 0, 0, 0, 0, 0, 0
+                    cos_theta_sq = cos_theta**2
+
+                    # 2. Calculate Initial Velocity (v0) needed to make the shot
+                    # Based on the projectile motion equation: y = x*tan(theta) - (g*x^2)/(2*v0^2*cos^2(theta))
+                    v0_squared_denominator = 2 * cos_theta_sq * (distance_x * tan_theta - y_diff)
+                    if v0_squared_denominator <= 0: return 0, 0, 0, 0, 0, 0
+                    v0_squared = (g * distance_x**2) / v0_squared_denominator
+
+                    # 3. Calculate Parabola Coefficients (a, b, c) from v0
+                    # This ensures the plotted path matches the physics
+                    a = -g / (2 * v0_squared * cos_theta_sq)
+                    b_val = tan_theta - (2 * a * start_r)
+                    c_val = b.height - (start_r * tan_theta) + (a * start_r**2)
+
+                    # 4. Calculate Shot Dynamics (Force, Acceleration, Time)
+                    push_distance = b.height / 3
+                    if b.athleticism == 1: athleticism_factor = 0.8
+                    elif b.athleticism == 2: athleticism_factor = 1.0
+                    else: athleticism_factor = 1.2
+
+                    # Work-Energy Theorem: Force = (0.5 * mass * v0^2) / distance
+                    force = (0.5 * b.mass * v0_squared) / push_distance
+                    # Newton's Second Law: a = F/m, adjusted for skill
+                    acceleration = (force / b.mass) * athleticism_factor
+                    
+                    release_time = 0
+                    if acceleration > 0:
+                        # Kinematics: t = sqrt(2*d/a)
+                        release_time = math.sqrt(2 * push_distance / acceleration)
+
+                    return a, b_val, c_val, acceleration, force, release_time
+
                 # We'll calculate for two different parabolas (different launch angles)
                 launch_angle_1 = 45
                 launch_angle_2 = 55
-                a1, b1, c1 = b.parabola_vars(launch_angle_1, r, b.hoop_pos[0], b.height, hoop_height_m)
-                a2, b2, c2 = b.parabola_vars(launch_angle_2, r, b.hoop_pos[0], b.height, hoop_height_m)
-
-                # --- Corrected physics calculations ---
-                def calculate_shot_dynamics(launch_angle):
-                    y = hoop_height_m - b.height
-                    g = b.gravity
-                    
-                    theta_rad = math.radians(launch_angle)
-                    cos_theta_sq = math.cos(theta_rad)**2
-                    tan_theta = math.tan(theta_rad)
-                    
-                    denominator = 2 * cos_theta_sq * (distance_x * tan_theta - y)
-                    
-                    acceleration, force, release_time = 0, 0, 0
-
-                    if denominator > 0:
-                        v0_squared = (g * distance_x**2) / denominator
-                        if v0_squared > 0:
-                            push_distance = b.height / 3 
-                            
-                            if b.athleticism == 1: athleticism_factor = 0.8
-                            elif b.athleticism == 2: athleticism_factor = 1.0
-                            else: athleticism_factor = 1.2
-
-                            force = (0.5 * b.mass * v0_squared) / push_distance
-                            acceleration = (force / b.mass) * athleticism_factor
-                            if acceleration <= 0: acceleration = 0.1
-
-                            release_time = math.sqrt(2 * push_distance / acceleration)
-                    
-                    return acceleration, force, release_time
-
-                acceleration1, force1, release_time1 = calculate_shot_dynamics(launch_angle_1)
-                acceleration2, force2, release_time2 = calculate_shot_dynamics(launch_angle_2)
+                
+                a1, b1, c1, acc1, force1, time1 = calculate_shot_physics(launch_angle_1, r)
+                a2, b2, c2, acc2, force2, time2 = calculate_shot_physics(launch_angle_2, r)
 
                 tiles.append({
                     'r': r,
                     'c': c,
                     'filename': img_filename,
-                    'acceleration': f'{acceleration1:.2f}',
-                    'force': f'{force1:.2f}',
-                    'release_time': f'{release_time1:.2f}',
                     'parabolas': [
-                        {'a': a1, 'b': b1, 'c': c1, 'angle': launch_angle_1, 'acceleration': f'{acceleration1:.2f}', 'force': f'{force1:.2f}', 'release_time': f'{release_time1:.2f}'},
-                        {'a': a2, 'b': b2, 'c': c2, 'angle': launch_angle_2, 'acceleration': f'{acceleration2:.2f}', 'force': f'{force2:.2f}', 'release_time': f'{release_time2:.2f}'}
+                        {'a': a1, 'b': b1, 'c': c1, 'angle': launch_angle_1, 'acceleration': f'{acc1:.2f}', 'force': f'{force1:.2f}', 'release_time': f'{time1:.2f}'},
+                        {'a': a2, 'b': b2, 'c': c2, 'angle': launch_angle_2, 'acceleration': f'{acc2:.2f}', 'force': f'{force2:.2f}', 'release_time': f'{time2:.2f}'}
                     ],
                     'x_start': r,
                     'x_end': b.hoop_pos[0]
