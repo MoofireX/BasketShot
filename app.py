@@ -50,25 +50,55 @@ def index():
 
             # Generate shots
             b = basketshot(img=image_path, height=height, weight=weight, athleticism=athleticism)
-            shots_x, shots_y, sub_images, distance = b.calculate_shots()
-
+            
             tiles = []
             hoop_height_m = 3.048 # Standard 10ft hoop height in meters
 
-            for (r, c), img in sub_images.items():
+            for (r, c), img in b.sub_images.items():
                 img_filename = f'tile_{r}_{c}.png'
                 img_path = os.path.join(app.config['TILES_FOLDER'], img_filename)
                 cv2.imwrite(img_path, img)
 
                 # Calculate physics for this specific position
                 distance_x = b.hoop_pos[0] - r
-                
-                # We'll calculate for two different parabolas (different launch angles)
-                a1, b1, c1 = b.parabola_vars(45, r, b.hoop_pos[0], b.height, hoop_height_m)
-                a2, b2, c2 = b.parabola_vars(55, r, b.hoop_pos[0], b.height, hoop_height_m)
+                if distance_x <= 0: continue
 
-                # The original parabolic_shot seems to be for a single point, let's get the other metrics from it
-                shot, acceleration, force, release_time = b.parabolic_shot(a1, b1, c1, distance_x)
+                # We'll calculate for two different parabolas (different launch angles)
+                launch_angle_1 = 45
+                launch_angle_2 = 55
+                a1, b1, c1 = b.parabola_vars(launch_angle_1, r, b.hoop_pos[0], b.height, hoop_height_m)
+                a2, b2, c2 = b.parabola_vars(launch_angle_2, r, b.hoop_pos[0], b.height, hoop_height_m)
+
+                # --- Corrected physics calculations ---
+                y = hoop_height_m - b.height
+                g = b.gravity
+                
+                theta_rad_1 = math.radians(launch_angle_1)
+                cos_theta_sq_1 = math.cos(theta_rad_1)**2
+                tan_theta_1 = math.tan(theta_rad_1)
+                denominator_1 = 2 * cos_theta_sq_1 * (distance_x * tan_theta_1 - y)
+                
+                acceleration, force, release_time = 0, 0, 0
+
+                if denominator_1 > 0:
+                    v0_squared = (g * distance_x**2) / denominator_1
+                    if v0_squared > 0:
+                        v0 = math.sqrt(v0_squared)
+                        push_distance = b.height / 3 
+                        
+                        if b.athleticism == 1: athleticism_factor = 1.2
+                        elif b.athleticism == 2: athleticism_factor = 1.0
+                        else: athleticism_factor = 0.8
+
+                        force = ((0.5 * b.mass * v0_squared) / push_distance) * athleticism_factor
+                        drag_force = b.air_resistance_formula(b.air_density, v0, b.cross_Section_Area)
+                        net_force = force - drag_force
+                        if net_force <= 0: net_force = 0.001
+
+                        acceleration = net_force / b.mass
+                        if acceleration <= 0: acceleration = 0.1
+
+                        release_time = math.sqrt(2 * push_distance / acceleration)
 
                 tiles.append({
                     'r': r,
@@ -78,8 +108,8 @@ def index():
                     'force': f'{force:.2f}',
                     'release_time': f'{release_time:.2f}',
                     'parabolas': [
-                        {'a': a1, 'b': b1, 'c': c1, 'angle': 45},
-                        {'a': a2, 'b': b2, 'c': c2, 'angle': 55}
+                        {'a': a1, 'b': b1, 'c': c1, 'angle': launch_angle_1},
+                        {'a': a2, 'b': b2, 'c': c2, 'angle': launch_angle_2}
                     ],
                     'x_start': r,
                     'x_end': b.hoop_pos[0]
