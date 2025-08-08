@@ -647,72 +647,61 @@
     <div class="info-modal" id="infoModal">
         <div class="info-content">
             <button class="close-info" onclick="closeInfoModal()">×</button>
-            <h1>🔬 The Physics Behind Your Shot</h1>
-            <p>The simulation uses real-world physics principles to determine the force, acceleration, and time required for a successful shot. Here's how it works:</p>
+            <h1>🔬 The Unified Physics Behind Your Shot</h1>
+            <p>The simulation uses a unified physics model to ensure the shot's path and the forces required are perfectly synchronized. Here’s the step-by-step breakdown:</p>
 
-            <!-- Section 1: Parabolic Trajectory -->
-            <h2>Part 1: Plotting the Shot Arc (Parabola)</h2>
-            <p>First, we calculate the mathematical parabola (the arc of the ball) needed to get from your hands to the hoop at a specific launch angle.</p>
+            <!-- Section 1: Initial Velocity -->
+            <h2>Part 1: Calculating the Required Initial Velocity (v₀)</h2>
+            <p>Everything starts with calculating the initial velocity (<code>v₀</code>) needed for the ball to travel from your hands to the hoop at a specific angle. This is the cornerstone of the entire calculation.</p>
             
-            <h4>Given Parameters:</h4>
-            <ul>
-                <li><strong>Starting Point (x₁, y₁):</strong> Your position on the court, with y₁ being your height.</li>
-                <li><strong>Target Point (x₂, y₂):</strong> The hoop's position and height.</li>
-                <li><strong>Launch Angle (θ):</strong> The angle you shoot the ball (e.g., 45° or 55°).</li>
-            </ul>
-
-            <h4>The Equation:</h4>
-            <p>We solve for the coefficients <code>a</code>, <code>b</code>, and <code>c</code> in the standard parabola equation: <code>y = ax² + bx + c</code>.</p>
-            
-            <div class="formula-box">
-                <strong>Step 1: Find coefficient `a`</strong><br>
-                <code>a = tan(θ) / (x₁ - x₂)</code>
-            </div>
-            <div class="formula-box">
-                <strong>Step 2: Find coefficient `b`</strong><br>
-                <code>b = ( (y₂ - y₁) - a * (x₂² - x₁²) ) / (x₂ - x₁)</code>
-            </div>
-            <div class="formula-box">
-                <strong>Step 3: Find coefficient `c`</strong><br>
-                <code>c = y₁ - a*x₁² - b*x₁</code>
-            </div>
-
-            <!-- Section 2: Shot Dynamics -->
-            <h2>Part 2: Calculating the Shot Dynamics</h2>
-            <p>Next, we use core physics principles to figure out the real-world forces needed to make that shot happen.</p>
-
-            <h4>Step 2.1: Find the Initial Velocity (v₀)</h4>
-            <p>We use the official projectile motion equation to find the initial speed (<code>v₀</code>) the ball needs to leave your hands with.</p>
-            <pre><code># Projectile Motion Formula
-y(x) = x*tan(θ) - (g*x²) / (2*v₀²*cos²(θ))</code></pre>
-            <p>By rearranging this formula to solve for <code>v₀²</code>, we get:</p>
+            <h4>The Core Equation:</h4>
+            <p>We use the standard projectile motion equation, which describes the path of a thrown object under gravity:</p>
+            <pre><code>y(x) = x * tan(θ) - (g * x²) / (2 * v₀² * cos²(θ))</code></pre>
+            <p>We know the start (x₁, y₁) and end (x₂, y₂) points, the angle (θ), and gravity (g). By rearranging the formula to solve for the initial velocity squared (<code>v₀²</code>), we get:</p>
             <div class="formula-box">
                 <strong>Initial Velocity Squared (v₀²)</strong><br>
-                <code>v₀² = (g * x²) / (2 * cos²(θ) * (x*tan(θ) - y))</code>
-                <br><small>where <strong>x</strong> is the horizontal distance to the hoop, <strong>y</strong> is the vertical distance, and <strong>g</strong> is gravity (9.8 m/s²).</small>
+                <code>v₀² = (g * distance_x²) / (2 * cos²(θ) * (distance_x*tan(θ) - y_diff))</code>
+                <br><small>where <strong>distance_x</strong> is the horizontal distance to the hoop and <strong>y_diff</strong> is the vertical distance between your hands and the hoop.</small>
             </div>
 
-            <h4>Step 2.2: Find the Force Required</h4>
-            <p>Using the <strong>Work-Energy Theorem</strong> (Work = Change in Kinetic Energy), we calculate the average force you need to apply.</p>
+            <!-- Section 2: Parabola from Velocity -->
+            <h2>Part 2: Plotting the Parabola from Physics</h2>
+            <p>Instead of calculating the parabola separately, we now derive it directly from the initial velocity we just found. This guarantees the visual path matches the physics.</p>
+            
+            <h4>The Equation: <code>y = ax² + bx + c</code></h4>
+            <p>The coefficients <code>a</code>, <code>b</code>, and c are now calculated based on our <code>v₀</code> and the laws of motion:</p>
+            
+            <div class="formula-box">
+                <strong>Coefficient `a`</strong><br>
+                <code>a = -g / (2 * v₀² * cos²(θ))</code>
+                <br><small>This term represents the effect of gravity on the arc.</small>
+            </div>
+            <div class="formula-box">
+                <strong>Coefficient `b`</strong><br>
+                <code>b = tan(θ) - (2 * a * x₁)</code>
+                <br><small>This term represents the initial slope of the shot at your release point (x₁).</small>
+            </div>
+            <div class="formula-box">
+                <strong>Coefficient `c`</strong><br>
+                <code>c = y₁ - (x₁ * tan(θ)) + (a * x₁²)</code>
+                <br><small>This ensures the parabola starts exactly at your hand height (y₁).</small>
+            </div>
+
+            <!-- Section 3: Shot Dynamics -->
+            <h2>Part 3: Calculating the Force and Acceleration</h2>
+            <p>Finally, we determine the physical effort required to generate the initial velocity (<code>v₀</code>).</p>
+
+            <h4>The Formulas:</h4>
             <div class="formula-box">
                 <strong>Force (F)</strong><br>
                 <code>Force = (0.5 * mass * v₀²) / push_distance</code>
-                <br><small>where <strong>mass</strong> is the ball's mass (0.624 kg) and <strong>push_distance</strong> is the distance you push the ball (assumed to be 1/3 of your height).</small>
+                <br><small>Based on the <strong>Work-Energy Theorem</strong>, this is the average force needed over your pushing motion.</small>
             </div>
-
-            <h4>Step 2.3: Find Acceleration & Release Time</h4>
-            <p>Finally, we use Newton's Second Law (F=ma) and basic kinematics to find the ball's acceleration and the time it takes to release the shot.</p>
             <div class="formula-box">
                 <strong>Acceleration (a)</strong><br>
                 <code>a = (Force / mass) * athleticism_factor</code>
-                <br><small>The <strong>athleticism_factor</strong> (Beginner: 0.8, Intermediate: 1.0, Pro: 1.2) adjusts the raw acceleration.</small>
+                <br><small>Using <strong>Newton's Second Law (F=ma)</strong>, we find the ball's acceleration, adjusted by your skill level.</small>
             </div>
-             <div class="formula-box">
-                <strong>Release Time (t)</strong><br>
-                <code>t = sqrt(2 * push_distance / a)</code>
-                <br><small>This is how long it takes to accelerate the ball from rest over the <strong>push_distance</strong>.</small>
-            </div>
-
         </div>
     </div>
 
